@@ -17,9 +17,9 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
 # Player
-player_width = 40
-player_height = 30
-player = pygame.Rect(WIDTH // 2 - player_width // 2, HEIGHT - player_height - 10, player_width, player_height)
+player_width = 50
+player_height = 40
+player = pygame.Rect(WIDTH // 2 - player_width // 2, HEIGHT - player_height - 20, player_width, player_height)
 player_speed = 5
 
 # Bullets
@@ -42,10 +42,45 @@ font = pygame.font.Font(None, 36)
 stars = [(random.randint(0, WIDTH), random.randint(0, HEIGHT)) for _ in range(100)]
 
 def draw_player(surface, rect):
-    pygame.draw.polygon(surface, GREEN, [
+    # Main body of the ship
+    pygame.draw.polygon(surface, (100, 100, 255), [
         (rect.left + rect.width // 2, rect.top),
         (rect.left, rect.bottom),
         (rect.right, rect.bottom)
+    ])
+
+    # Cockpit
+    pygame.draw.ellipse(surface, (200, 200, 255),
+                        (rect.centerx - 10, rect.centery - 5, 20, 20))
+
+    # Wings
+    pygame.draw.polygon(surface, (50, 50, 200), [
+        (rect.left, rect.bottom),
+        (rect.left - 15, rect.bottom + 10),
+        (rect.left + 10, rect.bottom - 5)
+    ])
+    pygame.draw.polygon(surface, (50, 50, 200), [
+        (rect.right, rect.bottom),
+        (rect.right + 15, rect.bottom + 10),
+        (rect.right - 10, rect.bottom - 5)
+    ])
+
+    # Engines
+    pygame.draw.rect(surface, (255, 100, 0),
+                     (rect.left + 5, rect.bottom, 10, 5))
+    pygame.draw.rect(surface, (255, 100, 0),
+                     (rect.right - 15, rect.bottom, 10, 5))
+
+    # Engine glow
+    pygame.draw.polygon(surface, (255, 200, 0), [
+        (rect.left + 5, rect.bottom + 5),
+        (rect.left + 10, rect.bottom + 15),
+        (rect.left + 15, rect.bottom + 5)
+    ])
+    pygame.draw.polygon(surface, (255, 200, 0), [
+        (rect.right - 15, rect.bottom + 5),
+        (rect.right - 10, rect.bottom + 15),
+        (rect.right - 5, rect.bottom + 5)
     ])
 
 def draw_enemy(surface, rect):
