@@ -19,9 +19,6 @@ YELLOW = (255, 255, 0)
 CYAN = (0, 255, 255)
 MAGENTA = (255, 0, 255)
 
-# Define enemy types
-ENEMY_TYPES = ['bee', 'butterfly', 'boss']
-
 # Player
 player_width = 50
 player_height = 40
@@ -39,6 +36,11 @@ enemy_size = 30
 enemies = []
 enemy_speed = 2
 
+# Power-ups
+POWERUP_SIZE = 20
+powerups = []
+weapon_level = 1
+
 # Game variables
 score = 0
 lives = 3
@@ -46,6 +48,23 @@ font = pygame.font.Font(None, 36)
 
 # Stars (background)
 stars = [(random.randint(0, WIDTH), random.randint(0, HEIGHT)) for _ in range(100)]
+
+# Enemy types
+ENEMY_TYPES = ['bee', 'butterfly', 'boss']
+
+class PowerUp:
+    def __init__(self, x):
+        self.rect = pygame.Rect(x, -POWERUP_SIZE, POWERUP_SIZE, POWERUP_SIZE)
+        self.color = (0, 255, 0)  # Green
+        self.speed = 2
+
+    def move(self):
+        self.rect.y += self.speed
+
+    def draw(self, surface):
+        pygame.draw.rect(surface, self.color, self.rect)
+        pygame.draw.rect(surface, WHITE, self.rect, 2)  # White border
+
 
 def draw_player(surface, rect):
     # Main body of the ship
@@ -89,13 +108,6 @@ def draw_player(surface, rect):
         (rect.right - 5, rect.bottom + 5)
     ])
 
-# Modify the enemy creation to include type
-def spawn_enemy():
-    x = random.randint(0, WIDTH - enemy_size)
-    y = -enemy_size
-    enemy_type = random.choice(ENEMY_TYPES)
-    enemies.append({'rect': pygame.Rect(x, y, enemy_size, enemy_size), 'type': enemy_type})
-
 def draw_enemy(surface, enemy):
     rect = enemy['rect']
     enemy_type = enemy['type']
@@ -132,6 +144,17 @@ def draw_enemy(surface, enemy):
         # Mouth
         pygame.draw.arc(surface, WHITE, (rect.left + rect.width // 4, rect.centery, rect.width // 2, rect.height // 2), 3.14, 2 * 3.14, 2)
 
+def spawn_enemy():
+    x = random.randint(0, WIDTH - enemy_size)
+    y = -enemy_size
+    enemy_type = random.choice(ENEMY_TYPES)
+    enemies.append({'rect': pygame.Rect(x, y, enemy_size, enemy_size), 'type': enemy_type})
+
+def spawn_powerup():
+    x = random.randint(0, WIDTH - POWERUP_SIZE)
+    powerups.append(PowerUp(x))
+
+
 # Game loop
 clock = pygame.time.Clock()
 running = True
@@ -143,7 +166,15 @@ while running:
             running = False
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
-                bullets.append(pygame.Rect(player.centerx - bullet_width // 2, player.top, bullet_width, bullet_height))
+                if weapon_level == 1:
+                    bullets.append(pygame.Rect(player.centerx - bullet_width // 2, player.top, bullet_width, bullet_height))
+                elif weapon_level == 2:
+                    bullets.append(pygame.Rect(player.left + 5, player.top, bullet_width, bullet_height))
+                    bullets.append(pygame.Rect(player.right - 5 - bullet_width, player.top, bullet_width, bullet_height))
+                elif weapon_level == 3:
+                    bullets.append(pygame.Rect(player.centerx - bullet_width // 2, player.top, bullet_width, bullet_height))
+                    bullets.append(pygame.Rect(player.left + 5, player.top, bullet_width, bullet_height))
+                    bullets.append(pygame.Rect(player.right - 5 - bullet_width, player.top, bullet_width, bullet_height))
 
     # Move player
     keys = pygame.key.get_pressed()
@@ -171,6 +202,16 @@ while running:
         spawn_enemy()
         spawn_timer = 0
 
+    # Spawn power-ups
+    if random.randint(1, 500) == 1:  # Adjust frequency as needed
+        spawn_powerup()
+
+# Move and remove off-screen power-ups
+    for powerup in powerups[:]:
+        powerup.move()
+        if powerup.rect.top > HEIGHT:
+            powerups.remove(powerup)
+
     # Check collisions
     for enemy in enemies[:]:
         for bullet in bullets[:]:
@@ -182,6 +223,13 @@ while running:
         if enemy['rect'].colliderect(player):
             enemies.remove(enemy)
             lives -= 1
+            weapon_level = 1  # Reset weapon level
+
+    # Check collision with power-ups
+    for powerup in powerups[:]:
+        if player.colliderect(powerup.rect):
+            powerups.remove(powerup)
+            weapon_level = min(weapon_level + 1, 3)
 
     # Draw everything
     screen.fill(BLACK)
@@ -198,11 +246,17 @@ while running:
     for enemy in enemies:
         draw_enemy(screen, enemy)
 
+    # Draw power-ups
+    for powerup in powerups:
+        powerup.draw(screen)
+
     # Draw score and lives
     score_text = font.render(f"Score: {score}", True, WHITE)
     lives_text = font.render(f"Lives: {lives}", True, WHITE)
+    weapon_text = font.render(f"Weapon: Level {weapon_level}", True, WHITE)
     screen.blit(score_text, (10, 10))
     screen.blit(lives_text, (WIDTH - 100, 10))
+    screen.blit(weapon_text, (10, 40))
 
     pygame.display.flip()
 
