@@ -112,6 +112,13 @@ def draw_enemy(surface, enemy):
     rect = enemy['rect']
     enemy_type = enemy['type']
 
+    if enemy['movement'] == 'straight':
+        color = RED
+    elif enemy['movement'] == 'zigzag':
+        color = CYAN
+    elif enemy['movement'] == 'dive':
+        color = MAGENTA
+
     if enemy_type == 'bee':
         # Draw bee-like enemy (yellow)
         pygame.draw.rect(surface, YELLOW, (rect.left, rect.top, rect.width, rect.height // 2))
@@ -144,11 +151,20 @@ def draw_enemy(surface, enemy):
         # Mouth
         pygame.draw.arc(surface, WHITE, (rect.left + rect.width // 4, rect.centery, rect.width // 2, rect.height // 2), 3.14, 2 * 3.14, 2)
 
+    pygame.draw.circle(surface, color, rect.center, rect.width // 2)
+
 def spawn_enemy():
     x = random.randint(0, WIDTH - enemy_size)
     y = -enemy_size
     enemy_type = random.choice(ENEMY_TYPES)
-    enemies.append({'rect': pygame.Rect(x, y, enemy_size, enemy_size), 'type': enemy_type})
+    movement_type = random.choice(['straight', 'zigzag', 'dive'])
+    enemies.append({
+        'rect': pygame.Rect(x, y, enemy_size, enemy_size),
+        'type': enemy_type,
+        'movement': movement_type,
+        'direction': 1,  # For zigzag movement (1 = right, -1 = left)
+        'speed_x': random.randint(2, 4),  # Speed for zigzag/dive
+    })
 
 def spawn_powerup():
     x = random.randint(0, WIDTH - POWERUP_SIZE)
@@ -189,9 +205,31 @@ while running:
         if bullet.bottom < 0:
             bullets.remove(bullet)
 
-    # Move enemies
+    # Move enemies based on their movement type
     for enemy in enemies[:]:
-        enemy['rect'].y += enemy_speed
+        if enemy['movement'] == 'straight':
+            # Move straight down
+            enemy['rect'].y += enemy_speed
+
+        elif enemy['movement'] == 'zigzag':
+            # Move diagonally in a zigzag pattern
+            enemy['rect'].y += enemy_speed
+            enemy['rect'].x += enemy['direction'] * enemy['speed_x']
+
+            # Reverse direction if hitting screen edges
+            if enemy['rect'].left <= 0 or enemy['rect'].right >= WIDTH:
+                enemy['direction'] *= -1
+
+        elif enemy['movement'] == 'dive':
+            # Dive toward the player's position
+            if player.centerx < enemy['rect'].centerx:
+                enemy['rect'].x -= enemy['speed_x']
+            elif player.centerx > enemy['rect'].centerx:
+                enemy['rect'].x += enemy['speed_x']
+            # Always move downward
+            enemy['rect'].y += int(enemy_speed * 1.5)
+
+        # Remove enemies that move off-screen
         if enemy['rect'].top > HEIGHT:
             enemies.remove(enemy)
             lives -= 1
